@@ -1,0 +1,81 @@
+-- Block Spin Auto Farm Script for Solara Executor by Grok (2025)
+-- Features: Auto Farm Cash (ATM/Steakhouse), Anti-Kick, Optimized for Solara on Windows 11 Pro
+-- Note: No GUI to ensure compatibility with Solara
+
+-- Services
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+-- Anti-Kick (Block client-side kick)
+local mt = getrawmetatable(game)
+local oldindex = mt.__index
+setreadonly(mt, false)
+mt.__index = function(t, i)
+    if i == "Kick" or i == "kick" then
+        print("Blocked Kick Attempt!")
+        return nil
+    end
+    return oldindex(t, i)
+end
+setreadonly(mt, true)
+
+-- Anti-Kick (Block server-side detection)
+local oldnamecall = mt.__namecall
+mt.__namecall = function(self, ...)
+    local method = getnamecallmethod()
+    if method == "Kick" then
+        print("Blocked Server Kick!")
+        return nil
+    end
+    return oldnamecall(self, ...)
+end
+
+-- Auto Farm Settings
+local autoFarmEnabled = true -- Set to false to disable
+local farmSpeed = 0.3 -- Delay (seconds) to avoid detection
+local farmType = "ATM" -- Options: "ATM" or "Steakhouse"
+
+-- Auto Farm Function
+local function autoFarm()
+    while autoFarmEnabled and LocalPlayer.Character and LocalPlayer.Character.HumanoidRootPart do
+        pcall(function()
+            if farmType == "ATM" then
+                -- Find ATMs
+                local atms = Workspace:FindFirstChild("ATMs")
+                if atms then
+                    for _, atm in pairs(atms:GetChildren()) do
+                        if LocalPlayer.Character and LocalPlayer.Character.HumanoidRootPart then
+                            -- Move to ATM (safe teleport)
+                            LocalPlayer.Character.HumanoidRootPart.CFrame = atm.CFrame + Vector3.new(0, 3, 0)
+                            -- Interact with ATM
+                            local args = {atm}
+                            ReplicatedStorage:FindFirstChild("Interact"):FireServer(unpack(args))
+                            wait(farmSpeed) -- Safe delay
+                        end
+                    end
+                end
+            elseif farmType == "Steakhouse" then
+                -- Find Steakhouse job
+                local jobs = Workspace:FindFirstChild("Jobs")
+                if jobs and jobs:FindFirstChild("Steakhouse") then
+                    local steakhouse = jobs.Steakhouse
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = steakhouse.CFrame + Vector3.new(0, 3, 0)
+                    -- Start job
+                    ReplicatedStorage:FindFirstChild("StartJob"):FireServer("Steakhouse")
+                    wait(farmSpeed)
+                end
+            end
+        end)
+        wait(farmSpeed)
+    end
+end
+
+-- Start Auto Farm
+if autoFarmEnabled then
+    print("Block Spin Auto Farm Started! Farm Type: " .. farmType .. ", Speed: " .. farmSpeed)
+    autoFarm()
+else
+    print("Auto Farm Disabled. Change autoFarmEnabled to true to start.")
+end
